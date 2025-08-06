@@ -1,5 +1,8 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Chrome as Home, Search, MapPin, Bus } from 'lucide-react-native';
+
+declare module 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -26,7 +29,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ size, color }) => (
+          tabBarIcon: ({ size, color }: { size: number; color: string }) => (
             <Home size={size} color={color} />
           ),
         }}

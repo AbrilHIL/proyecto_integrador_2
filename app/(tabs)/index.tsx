@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin, Clock, Bus, TrendingUp, Star } from 'lucide-react-native';
+import { Search, MapPin, Clock, Bus, TrendingUp, Star, TrendingDown, Minus } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import React from 'react';
+import { useRouter } from 'expo-router'; // <-- Add this import
 
 interface QuickAction {
   id: string;
@@ -23,6 +25,88 @@ interface PopularRoute {
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [liveData, setLiveData] = useState({
+    trafficStatus: 'good',
+    activeRoutes: 8,
+    punctuality: 95,
+    avgMinutes: 12,
+  });
+  const router = useRouter(); // <-- Add this line
+
+  useEffect(() => {
+    const updateLiveData = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      let trafficStatus: 'good' | 'neutral' | 'heavy' = 'good';
+
+      if (hour >= 0 && hour < 4) {
+        trafficStatus = 'good';
+      } else if (hour >= 5 && hour < 10) {
+        trafficStatus = 'heavy';
+      } else if (hour >= 10 && hour < 12) {
+        trafficStatus = 'neutral';
+      } else if (hour >= 12 && hour < 15) {
+        trafficStatus = 'heavy';
+      } else if (hour >= 15 && hour < 17) {
+        trafficStatus = 'neutral';
+      } else if (hour >= 17 && hour < 20) {
+        trafficStatus = 'heavy';
+      } else if (hour >= 20 && hour < 24) {
+        trafficStatus = 'good';
+      }
+
+      // Lógica para variar los otros datos según el tráfico
+      let activeRoutes = 8;
+      let punctuality = 95;
+      let avgMinutes = 12;
+
+      if (trafficStatus === 'good') {
+        activeRoutes = 10;
+        punctuality = 97;
+        avgMinutes = 10;
+      } else if (trafficStatus === 'neutral') {
+        activeRoutes = 7;
+        punctuality = 90;
+        avgMinutes = 15;
+      } else if (trafficStatus === 'heavy') {
+        activeRoutes = 5;
+        punctuality = 80;
+        avgMinutes = 22;
+      }
+
+      setLiveData({
+        trafficStatus,
+        activeRoutes,
+        punctuality,
+        avgMinutes,
+      });
+    };
+
+    updateLiveData();
+    const interval = setInterval(updateLiveData, 60 * 1000); // Actualiza cada minuto
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleQuickAction = (id: string) => {
+    switch (id) {
+      case '1':
+        // Buscar Ruta: navigate to routes tab
+        router.push('/routes');
+        break;
+            case '2':
+        router.push('/location');
+        break;
+      case '3':
+        router.push('/horarios');
+        break;
+      case '4':
+        router.push('/live');
+        break;
+      default:
+        break;
+    }
+  };
 
   const quickActions: QuickAction[] = [
     {
@@ -81,6 +165,19 @@ export default function HomeScreen() {
     },
   ];
 
+  const getTrafficIcon = (status: string) => {
+    switch (status) {
+      case 'good':
+        return <TrendingUp color="#10B981" size={24} />;
+      case 'neutral':
+        return <Minus color="#F59E0B" size={24} />;
+      case 'heavy':
+        return <TrendingDown color="#DC2626" size={24} />;
+      default:
+        return <Minus color="#6B7280" size={24} />;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -105,6 +202,8 @@ export default function HomeScreen() {
               placeholderTextColor="#9CA3AF"
               value={searchQuery}
               onChangeText={setSearchQuery}
+      
+
             />
           </View>
         </Animated.View>
@@ -117,6 +216,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={action.id}
                 style={[styles.quickAction, { backgroundColor: action.color }]}
+                onPress={() => handleQuickAction(action.id)}
               >
                 {action.icon}
                 <Text style={styles.quickActionText}>{action.title}</Text>
@@ -129,9 +229,6 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInUp.delay(400)} style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Rutas Populares</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>Ver todas</Text>
-            </TouchableOpacity>
           </View>
           
           <View style={styles.routesList}>
@@ -164,23 +261,25 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInUp.delay(500)} style={styles.section}>
           <View style={styles.liveUpdatesCard}>
             <View style={styles.liveHeader}>
-              <TrendingUp color="#10B981" size={24} />
+              {getTrafficIcon(liveData.trafficStatus)}
               <Text style={styles.liveTitle}>Estado del Tráfico</Text>
             </View>
             <Text style={styles.liveDescription}>
-              Condiciones normales en la mayoría de las rutas principales
+              {liveData.trafficStatus === 'good' && 'Condiciones buenas en la mayoría de las rutas.'}
+              {liveData.trafficStatus === 'neutral' && 'Tráfico moderado en varias rutas.'}
+              {liveData.trafficStatus === 'heavy' && 'Tráfico pesado en la ciudad.'}
             </Text>
             <View style={styles.liveStats}>
               <View style={styles.liveStat}>
-                <Text style={styles.liveStatNumber}>8</Text>
+                <Text style={styles.liveStatNumber}>{liveData.activeRoutes}</Text>
                 <Text style={styles.liveStatLabel}>Rutas activas</Text>
               </View>
               <View style={styles.liveStat}>
-                <Text style={styles.liveStatNumber}>95%</Text>
+                <Text style={styles.liveStatNumber}>{liveData.punctuality}%</Text>
                 <Text style={styles.liveStatLabel}>Puntualidad</Text>
               </View>
               <View style={styles.liveStat}>
-                <Text style={styles.liveStatNumber}>12</Text>
+                <Text style={styles.liveStatNumber}>{liveData.avgMinutes}</Text>
                 <Text style={styles.liveStatLabel}>Min promedio</Text>
               </View>
             </View>

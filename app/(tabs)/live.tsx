@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Bus, Clock, Users, RefreshCw, Maximize2 } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import React from 'react';
 
 const { width } = Dimensions.get('window');
 

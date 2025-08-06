@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock, User } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import React from 'react';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');

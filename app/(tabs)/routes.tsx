@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, MapPin, Clock, Users, Star } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import React from 'react';
+import { useRouter } from 'expo-router';
 
 interface Route {
   id: string;
@@ -15,11 +17,13 @@ interface Route {
   rating: number;
   occupancy: 'low' | 'medium' | 'high';
   price: string;
+  loc: string;
 }
 
 export default function RoutesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const router = useRouter(); // <-- Agrega esta línea
 
   const routes: Route[] = [
     {
@@ -33,6 +37,7 @@ export default function RoutesScreen() {
       rating: 4.5,
       occupancy: 'medium',
       price: 'RD$ 25',
+      loc: 'centro',
     },
     {
       id: '2',
@@ -45,6 +50,7 @@ export default function RoutesScreen() {
       rating: 4.2,
       occupancy: 'high',
       price: 'RD$ 30',
+      loc: 'norte',
     },
     {
       id: '3',
@@ -57,6 +63,7 @@ export default function RoutesScreen() {
       rating: 4.0,
       occupancy: 'low',
       price: 'RD$ 35',
+      loc: 'sur',
     },
     {
       id: '4',
@@ -69,6 +76,7 @@ export default function RoutesScreen() {
       rating: 3.8,
       occupancy: 'medium',
       price: 'RD$ 40',
+      loc: 'este',
     },
     {
       id: '5',
@@ -81,7 +89,100 @@ export default function RoutesScreen() {
       rating: 4.3,
       occupancy: 'high',
       price: 'RD$ 20',
+      loc: 'centro',
     },
+      {
+  id: '6',
+  number: 'C6',
+  name: 'Los Alcarrizos',
+  from: 'Los Alcarrizos',
+  to: 'Puerto Haina Oriental',
+  stops: 8,  
+  frequency: '30 min',
+  rating: 4.1,
+  occupancy: 'high',
+  price: 'RD$ 15',
+  loc: 'oeste'
+},
+{
+  id: '7',
+  number: 'C2',
+  name: '27 de Febrero / Hipódromo',
+  from: 'Av. 27 de Febrero (Induveca)',
+  to: 'Hipódromo V Centenario',
+  stops: 9,
+  frequency: '30 min en días laborables',
+  rating: 4.0,
+  occupancy: 'medium',
+  price: 'RD$ 15',
+  loc: 'centro-sur'
+},
+{
+  id: '8',
+  number: 'C4',
+  name: 'Kennedy Km 9½',
+  from: 'Aut. Duarte Prox. C/1ra',
+  to: 'Carr. Mella Km 9½',
+  stops: 16,
+  frequency: '30 min',
+  rating: 4.0,
+  occupancy: 'medium',
+  price: 'RD$ 15',
+  loc: 'norte'
+},
+{
+  id: '9',
+  number: 'C14',
+  name: 'Naco',
+  from: 'Km 9½ Aut. Duarte',
+  to: 'Av. Núñez de Cáceres (Naco)',
+  stops: 10,
+  frequency: '30 min',
+  rating: 3.5,
+  occupancy: 'medium',
+  price: 'RD$ 15',
+  loc: 'norte-centro'
+},
+{
+  id: '10',
+  number: 'C33',
+  name: 'Bolívar / Independencia',
+  from: 'Puerto Haina Oriental',
+  to: 'Parque Independencia',
+  stops: 72,
+  frequency: '30 min',
+  rating: 5.0,
+  occupancy: 'high',
+  price: 'RD$ 15',
+  loc: 'centro'
+},
+{
+  id: '11',
+  number: 'C11',
+  name: 'Independencia / Hipódromo',
+  from: 'Puerto Haina Oriental',
+  to: 'Hipódromo V Centenario',
+  stops: 16,
+  frequency: '30 min',
+  rating: 4.0,
+  occupancy: 'medium',
+  price: 'RD$ 15',
+  loc: 'centro-sur'
+},
+{
+  id: '12',
+  number: 'C1',
+  name: 'Las Caobas',
+  from: 'Las Caobas',
+  to: 'centro de Santo Domingo',
+  stops: 12,
+  frequency: '30 min',
+  rating: 6.0,
+  occupancy: 'medium',
+  price: 'RD$ 15',
+  loc: 'oeste'
+}
+
   ];
 
   const filters = [
@@ -118,12 +219,18 @@ export default function RoutesScreen() {
     }
   };
 
-  const filteredRoutes = routes.filter(route =>
-    route.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    route.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    route.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    route.to.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredRoutes = routes.filter(route => {
+    const matchesSearch =
+      route.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      route.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      route.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      route.to.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesFilter =
+      selectedFilter === 'all' || route.loc === selectedFilter;
+
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -234,13 +341,11 @@ export default function RoutesScreen() {
                 </View>
 
                 <View style={styles.routeActions}>
-                  <TouchableOpacity style={styles.routeActionButton}>
+                  <TouchableOpacity
+                    style={styles.routeActionButton}
+                    onPress={() => router.push({ pathname: '/route-info/[id]', params: { id: route.id } })}
+                  >
                     <Text style={styles.routeActionButtonText}>Ver Detalles</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.routeActionButton, styles.routeActionButtonPrimary]}>
-                    <Text style={[styles.routeActionButtonText, styles.routeActionButtonTextPrimary]}>
-                      Seguir Ruta
-                    </Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>

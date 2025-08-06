@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Navigation, Clock, ArrowRight, Users, Repeat } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import * as Location from 'expo-location';
+import SelectLocationModal from '../../components/SelectLocationModal';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 interface RouteOption {
   id: string;
@@ -20,10 +23,15 @@ interface RouteOption {
 }
 
 export default function PlannerScreen() {
+  const params = useLocalSearchParams();
   const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
+  const [destination, setDestination] = useState(params.destination ? String(params.destination) : '');
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [editingField, setEditingField] = useState<'origin' | 'destination' | null>(null);
+  const router = useRouter();
 
   const routeOptions: RouteOption[] = [
     {
@@ -116,18 +124,18 @@ export default function PlannerScreen() {
     }, 1500);
   };
 
-  const handleUseMyLocation = () => {
-    Alert.alert(
-      'Ubicación',
-      '¿Deseas usar tu ubicación actual como origen?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Usar ubicación', 
-          onPress: () => setOrigin('Mi ubicación actual')
-        }
-      ]
-    );
+  // Nueva función para obtener la ubicación
+  const handleUseMyLocation = async () => {
+    setGettingLocation(true);
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setGettingLocation(false);
+      Alert.alert('Permiso denegado', 'No se pudo acceder a la ubicación.');
+      return;
+    }
+    let location = await Location.getCurrentPositionAsync({});
+    setOrigin(`Mi ubicación (${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)})`);
+    setGettingLocation(false);
   };
 
   const handleSwapLocations = () => {
@@ -136,10 +144,29 @@ export default function PlannerScreen() {
     setDestination(temp);
   };
 
+  const handleOpenMap = (field: 'origin' | 'destination') => {
+    setEditingField(field);
+    setShowMapModal(true);
+  };
+
+  const handleSelectLocation = (coords: { latitude: number; longitude: number }) => {
+    const value = `(${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`;
+    if (editingField === 'origin') setOrigin(value);
+    if (editingField === 'destination') setDestination(value);
+    setShowMapModal(false);
+    setEditingField(null);
+  };
+
+  useEffect(() => {
+    handleUseMyLocation();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Planificar Viaje</Text>
+        <Text style={styles.headerTitle}>
+          {destination ? `Planificar viaje a ${destination}` : 'Planificar Viaje'}
+        </Text>
         <Text style={styles.headerSubtitle}>¿Cómo llegar a tu destino?</Text>
       </View>
 
@@ -148,7 +175,6 @@ export default function PlannerScreen() {
         <Animated.View entering={FadeInUp.delay(100)} style={styles.searchForm}>
           <View style={styles.locationInputs}>
             <View style={styles.inputContainer}>
-              <View style={styles.locationDot} />
               <TextInput
                 style={styles.locationInput}
                 placeholder="¿Desde dónde sales?"
@@ -159,8 +185,15 @@ export default function PlannerScreen() {
               <TouchableOpacity 
                 style={styles.locationButton}
                 onPress={handleUseMyLocation}
+                disabled={gettingLocation}
               >
-                <Navigation color="#1E40AF" size={20} />
+                <Navigation color={gettingLocation ? "#9CA3AF" : "#1E40AF"} size={20} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={() => handleOpenMap('origin')}
+              >
+                <MapPin color="#1E40AF" size={20} />
               </TouchableOpacity>
             </View>
 
@@ -175,7 +208,6 @@ export default function PlannerScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <View style={[styles.locationDot, styles.destinationDot]} />
               <TextInput
                 style={styles.locationInput}
                 placeholder="¿A dónde vas?"
@@ -183,6 +215,12 @@ export default function PlannerScreen() {
                 value={destination}
                 onChangeText={setDestination}
               />
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={() => handleOpenMap('destination')}
+              >
+                <MapPin color="#DC2626" size={20} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -206,9 +244,8 @@ export default function PlannerScreen() {
                 De "{origin}" a "{destination}"
               </Text>
             </View>
-
             <View style={styles.routeOptions}>
-              {routeOptions.map((option, index) => (
+              {getRouteOptions(origin, destination).map((option, index) => (
                 <Animated.View
                   key={option.id}
                   entering={FadeInUp.delay(300 + index * 100)}
@@ -259,7 +296,10 @@ export default function PlannerScreen() {
                       <TouchableOpacity style={styles.routeActionButton}>
                         <Text style={styles.routeActionButtonText}>Ver Detalles</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={[styles.routeActionButton, styles.routeActionButtonPrimary]}>
+                      <TouchableOpacity 
+                        style={[styles.routeActionButton, styles.routeActionButtonPrimary]}
+                        onPress={() => router.push({ pathname: '/seguir-ruta/[id]', params: { id: option.id } })}
+                      >
                         <Text style={[styles.routeActionButtonText, styles.routeActionButtonTextPrimary]}>
                           Usar Esta Ruta
                         </Text>
@@ -298,8 +338,91 @@ export default function PlannerScreen() {
           </Animated.View>
         )}
       </ScrollView>
+
+      <SelectLocationModal
+        visible={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        onSelect={handleSelectLocation}
+      />
     </SafeAreaView>
   );
+}
+
+function getDistanceKm(from: string, to: string): number {
+  // Espera formato "(lat, lng)"
+  const parse = (str: string) => {
+    const match = str.match(/-?\d+\.\d+/g);
+    return match ? { lat: parseFloat(match[0]), lng: parseFloat(match[1]) } : null;
+  };
+  const a = parse(from);
+  const b = parse(to);
+  if (!a || !b) return 0;
+  const R = 6371; // km
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const x = dLat / 2;
+  const y = dLng / 2;
+  const aVal =
+    Math.sin(x) * Math.sin(x) +
+    Math.sin(y) * Math.sin(y) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+  return Math.round(R * c * 10) / 10;
+}
+
+function getRouteOptions(origin: string, destination: string): RouteOption[] {
+  const distance = getDistanceKm(origin, destination);
+
+  // Lógica simple: cuanto más lejos, más tiempo, más paradas, más costo
+  let baseTime = 20;
+  let baseWalking = 5;
+  let baseTransfers = 0;
+  let baseStops = 8;
+  let baseCost = 30;
+
+  if (distance > 0) {
+    baseTime += Math.round(distance * 2.5);
+    baseWalking += Math.round(distance * 0.5);
+    baseTransfers = distance > 10 ? 2 : distance > 5 ? 1 : 0;
+    baseStops += Math.round(distance * 1.5);
+    baseCost += Math.round(distance * 2.5);
+  }
+
+  return [
+    {
+      id: '1',
+      totalTime: `${baseTime} min`,
+      walkingTime: `${baseWalking} min`,
+      transfers: baseTransfers,
+      routes: [
+        {
+          number: 'A1',
+          name: 'Expreso Kennedy',
+          from: origin,
+          to: destination,
+          color: '#1E40AF',
+        },
+      ],
+      cost: `RD$ ${baseCost}`,
+    },
+    {
+      id: '2',
+      totalTime: `${baseTime + 10} min`,
+      walkingTime: `${baseWalking + 3} min`,
+      transfers: baseTransfers + 1,
+      routes: [
+        {
+          number: 'B3',
+          name: 'Metro Norte',
+          from: origin,
+          to: destination,
+          color: '#10B981',
+        },
+      ],
+      cost: `RD$ ${baseCost + 10}`,
+    },
+  ];
 }
 
 const styles = StyleSheet.create({

@@ -8,6 +8,7 @@ import Animated, {
   withSequence, 
   withDelay 
 } from 'react-native-reanimated';
+import React from 'react';
 
 const { width, height } = Dimensions.get('window');
 
