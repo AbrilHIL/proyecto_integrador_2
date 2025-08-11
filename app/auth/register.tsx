@@ -20,27 +20,35 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
-
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
     }
-
     if (password.length < 6) {
       Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     setLoading(true);
-    // Simulate registration
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://10.0.2.2:3000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await response.json();
       setLoading(false);
-      Alert.alert(
-        'Cuenta creada',
-        'Tu cuenta ha sido creada exitosamente',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-      );
-    }, 1500);
+      if (data.success) {
+        Alert.alert('Cuenta creada', 'Tu cuenta ha sido creada exitosamente', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        ]);
+      } else {
+        Alert.alert('Error', data.error || 'No se pudo crear la cuenta');
+      }
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Error', 'No se pudo conectar al servidor');
+    }
   };
 
   return (

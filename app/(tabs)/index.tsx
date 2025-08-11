@@ -1,114 +1,14 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, MapPin, Clock, Bus, TrendingUp, Star, TrendingDown, Minus } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import React from 'react';
-import { useRouter } from 'expo-router'; // <-- Add this import
-
-interface QuickAction {
-  id: string;
-  title: string;
-  icon: React.ReactNode;
-  color: string;
-}
-
-interface PopularRoute {
-  id: string;
-  number: string;
-  name: string;
-  from: string;
-  to: string;
-  rating: number;
-  time: string;
-}
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [liveData, setLiveData] = useState({
-    trafficStatus: 'good',
-    activeRoutes: 8,
-    punctuality: 95,
-    avgMinutes: 12,
-  });
-  const router = useRouter(); // <-- Add this line
+  const router = useRouter();
 
-  useEffect(() => {
-    const updateLiveData = () => {
-      const now = new Date();
-      const hour = now.getHours();
-      let trafficStatus: 'good' | 'neutral' | 'heavy' = 'good';
-
-      if (hour >= 0 && hour < 4) {
-        trafficStatus = 'good';
-      } else if (hour >= 5 && hour < 10) {
-        trafficStatus = 'heavy';
-      } else if (hour >= 10 && hour < 12) {
-        trafficStatus = 'neutral';
-      } else if (hour >= 12 && hour < 15) {
-        trafficStatus = 'heavy';
-      } else if (hour >= 15 && hour < 17) {
-        trafficStatus = 'neutral';
-      } else if (hour >= 17 && hour < 20) {
-        trafficStatus = 'heavy';
-      } else if (hour >= 20 && hour < 24) {
-        trafficStatus = 'good';
-      }
-
-      // Lógica para variar los otros datos según el tráfico
-      let activeRoutes = 8;
-      let punctuality = 95;
-      let avgMinutes = 12;
-
-      if (trafficStatus === 'good') {
-        activeRoutes = 10;
-        punctuality = 97;
-        avgMinutes = 10;
-      } else if (trafficStatus === 'neutral') {
-        activeRoutes = 7;
-        punctuality = 90;
-        avgMinutes = 15;
-      } else if (trafficStatus === 'heavy') {
-        activeRoutes = 5;
-        punctuality = 80;
-        avgMinutes = 22;
-      }
-
-      setLiveData({
-        trafficStatus,
-        activeRoutes,
-        punctuality,
-        avgMinutes,
-      });
-    };
-
-    updateLiveData();
-    const interval = setInterval(updateLiveData, 60 * 1000); // Actualiza cada minuto
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleQuickAction = (id: string) => {
-    switch (id) {
-      case '1':
-        // Buscar Ruta: navigate to routes tab
-        router.push('/routes');
-        break;
-            case '2':
-        router.push('/location');
-        break;
-      case '3':
-        router.push('/horarios');
-        break;
-      case '4':
-        router.push('/live');
-        break;
-      default:
-        break;
-    }
-  };
-
-  const quickActions: QuickAction[] = [
+  const quickActions = [
     {
       id: '1',
       title: 'Buscar Ruta',
@@ -135,7 +35,7 @@ export default function HomeScreen() {
     },
   ];
 
-  const popularRoutes: PopularRoute[] = [
+  const popularRoutes = [
     {
       id: '1',
       number: 'A1',
@@ -165,6 +65,32 @@ export default function HomeScreen() {
     },
   ];
 
+  const liveData = {
+    trafficStatus: 'good',
+    activeRoutes: 8,
+    punctuality: 95,
+    avgMinutes: 12,
+  };
+
+  const handleQuickAction = (id: string) => {
+    switch (id) {
+      case '1':
+        router.push('/routes');
+        break;
+      case '2':
+        router.push('/location');
+        break;
+      case '3':
+        router.push('/horarios');
+        break;
+      case '4':
+        router.push('/live');
+        break;
+      default:
+        break;
+    }
+  };
+
   const getTrafficIcon = (status: string) => {
     switch (status) {
       case 'good':
@@ -187,25 +113,12 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>¡Hola!</Text>
             <Text style={styles.subtitle}>¿A dónde quieres ir hoy?</Text>
           </View>
-          <View style={styles.profileCircle}>
+          <TouchableOpacity
+            style={styles.profileCircle}
+            onPress={() => router.push('/user-details')}
+          >
             <Text style={styles.profileInitial}>U</Text>
-          </View>
-        </Animated.View>
-
-        {/* Search Bar */}
-        <Animated.View entering={FadeInUp.delay(200)} style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Search color="#9CA3AF" size={20} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar ruta, destino o parada..."
-              placeholderTextColor="#9CA3AF"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-      
-
-            />
-          </View>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* Quick Actions */}
@@ -230,7 +143,6 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Rutas Populares</Text>
           </View>
-          
           <View style={styles.routesList}>
             {popularRoutes.map((route) => (
               <TouchableOpacity key={route.id} style={styles.routeCard}>
@@ -290,6 +202,13 @@ export default function HomeScreen() {
   );
 }
 
+function getRandomColor() {
+  const colors = [
+    '#6366F1', '#1E40AF', '#10B981', '#F59E0B', '#DC2626', '#F472B6', '#6B7280', '#22D3EE'
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -318,7 +237,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1E40AF',
+    backgroundColor: getRandomColor(),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -326,28 +245,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
-  },
-  searchContainer: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-    marginLeft: 12,
   },
   section: {
     paddingHorizontal: 24,
@@ -363,11 +260,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#1E40AF',
   },
   quickActionsGrid: {
     flexDirection: 'row',

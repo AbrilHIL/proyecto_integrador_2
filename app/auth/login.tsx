@@ -11,19 +11,30 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleLogin = async () => {
+    setErrorMsg('');
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      setErrorMsg('Por favor completa todos los campos');
       return;
     }
 
     setLoading(true);
-    // Simulate login
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://10.0.2.2:3000/login', { // Cambia la URL si usas dispositivo físico
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
       setLoading(false);
-      router.replace('/(tabs)');
-    }, 1500);
+
+      
+    } catch (error) {
+      setLoading(false);
+      setErrorMsg('Usuario no encontrado');
+    }
   };
 
   return (
@@ -81,6 +92,10 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {errorMsg ? (
+            <Text style={styles.errorMsg}>{errorMsg}</Text>
+          ) : null}
 
           <TouchableOpacity
             style={styles.forgotPassword}
@@ -228,5 +243,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#1E40AF',
+  },
+  errorMsg: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    marginBottom: 12,
+    marginLeft: 4,
   },
 });
