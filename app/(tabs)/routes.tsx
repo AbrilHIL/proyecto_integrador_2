@@ -25,7 +25,7 @@ export default function RoutesScreen() {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const router = useRouter(); // <-- Agrega esta línea
 
-  const routes: Route[] = [
+  const routes1: Route[] = [
     {
       id: '1',
       number: 'A1',
@@ -219,7 +219,7 @@ export default function RoutesScreen() {
     }
   };
 
-  const filteredRoutes = routes.filter(route => {
+  const filteredRoutes = routes1.filter(route => {
     const matchesSearch =
       route.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       route.number.toLowerCase().includes(searchQuery.toLowerCase()) ||

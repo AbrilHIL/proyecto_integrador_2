@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail, CircleCheck as CheckCircle } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import React from 'react';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');

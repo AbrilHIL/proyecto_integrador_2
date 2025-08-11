@@ -4,9 +4,19 @@ import { Search, MapPin, Clock, Bus, TrendingUp, Star, TrendingDown, Minus } fro
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import React from 'react';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [user, setUser] = React.useState<{ name: string } | null>(null);
+
+  React.useEffect(() => {
+    const loadUser = async () => {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) setUser(JSON.parse(userData));
+    };
+    loadUser();
+  }, []);
 
   const quickActions = [
     {
@@ -110,14 +120,18 @@ export default function HomeScreen() {
         {/* Header */}
         <Animated.View entering={FadeInUp.delay(100)} style={styles.header}>
           <View>
-            <Text style={styles.greeting}>¡Hola!</Text>
+            <Text style={styles.greeting}>
+              {`¡Hola ${user?.name || ''}!`}
+            </Text>
             <Text style={styles.subtitle}>¿A dónde quieres ir hoy?</Text>
           </View>
           <TouchableOpacity
             style={styles.profileCircle}
             onPress={() => router.push('/user-details')}
           >
-            <Text style={styles.profileInitial}>U</Text>
+            <Text style={styles.profileInitial}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
 

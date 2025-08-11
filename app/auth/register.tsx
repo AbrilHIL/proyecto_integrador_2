@@ -1,23 +1,38 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Eye, EyeOff, Mail, Lock, User } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff, Mail, Lock, User, CheckCircle2, XCircle } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailValid, setEmailValid] = useState<null | boolean>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Validación local de formato de email
+  const checkEmail = (value: string) => {
+    setEmail(value);
+    // Expresión regular básica para validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    setEmailValid(emailRegex.test(value));
+  };
+
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
+    if (!emailValid) {
+      Alert.alert('Error', 'El correo electrónico no es válido');
       return;
     }
     if (password !== confirmPassword) {
@@ -39,9 +54,13 @@ export default function RegisterScreen() {
       const data = await response.json();
       setLoading(false);
       if (data.success) {
-        Alert.alert('Cuenta creada', 'Tu cuenta ha sido creada exitosamente', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)') }
-        ]);
+        // Guarda el usuario en AsyncStorage para sesión iniciada
+        await AsyncStorage.setItem('user', JSON.stringify({
+          name,
+          email,
+          password_hash: password // Si el backend responde el usuario, usa data.user
+        }));
+        router.replace('/(tabs)');
       } else {
         Alert.alert('Error', data.error || 'No se pudo crear la cuenta');
       }
@@ -89,11 +108,16 @@ export default function RegisterScreen() {
                 placeholder="Correo electrónico"
                 placeholderTextColor="#9CA3AF"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={checkEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
               />
+              {email.length > 0 && emailValid === true ? (
+                <CheckCircle2 color="#10B981" size={20} style={{ marginLeft: 8 }} />
+              ) : email.length > 0 && emailValid === false ? (
+                <XCircle color="#DC2626" size={20} style={{ marginLeft: 8 }} />
+              ) : null}
             </View>
 
             <View style={styles.inputWrapper}>

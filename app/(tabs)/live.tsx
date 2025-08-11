@@ -4,20 +4,57 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Bus, Clock, Users, RefreshCw, Maximize2 } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import React from 'react';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 
 const { width } = Dimensions.get('window');
 
 interface LiveBus {
   id: string;
-  routeNumber: string;
+  routeNumber: RouteKey;
   routeName: string;
   currentStop: string;
   nextStop: string;
   estimatedArrival: string;
   occupancy: 'low' | 'medium' | 'high';
   delay: number;
-  coordinates: { x: number; y: number };
+  coordinates: { latitude: number; longitude: number };
+  routeIndex: number;
 }
+
+type RouteKey = 'A1' | 'B3' | 'C7' | 'D2' | 'E5';
+
+const routes: Record<RouteKey, { latitude: number; longitude: number }[]> = {
+  A1: [
+    { latitude: 18.4861, longitude: -69.9312 },
+    { latitude: 18.4870, longitude: -69.9300 },
+    { latitude: 18.4880, longitude: -69.9290 },
+    // ...agrega más puntos reales de la ruta...
+  ],
+  B3: [
+    { latitude: 18.4870, longitude: -69.9300 },
+    { latitude: 18.4885, longitude: -69.9285 },
+    { latitude: 18.4895, longitude: -69.9275 },
+    // ...agrega más puntos reales de la ruta...
+  ],
+  C7: [
+    { latitude: 18.4850, longitude: -69.9320 },
+    { latitude: 18.4860, longitude: -69.9310 },
+    { latitude: 18.4870, longitude: -69.9300 },
+    // ...agrega más puntos reales de la ruta...
+  ],
+  D2: [
+    { latitude: 18.4880, longitude: -69.9290 },
+    { latitude: 18.4890, longitude: -69.9280 },
+    { latitude: 18.4900, longitude: -69.9270 },
+    // ...agrega más puntos reales de la ruta...
+  ],
+  E5: [
+    { latitude: 18.4865, longitude: -69.9330 },
+    { latitude: 18.4875, longitude: -69.9320 },
+    { latitude: 18.4885, longitude: -69.9310 },
+    // ...agrega más puntos reales de la ruta...
+  ],
+};
 
 export default function LiveScreen() {
   const [buses, setBuses] = useState<LiveBus[]>([]);
@@ -25,7 +62,7 @@ export default function LiveScreen() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Mock live bus data
+  // Mock live bus data con puntos iniciales más distribuidos
   const mockBuses: LiveBus[] = [
     {
       id: '1',
@@ -36,7 +73,8 @@ export default function LiveScreen() {
       estimatedArrival: '3 min',
       occupancy: 'medium',
       delay: 0,
-      coordinates: { x: 120, y: 150 },
+      coordinates: { latitude: 18.4805, longitude: -69.9390 }, // extremo oeste
+      routeIndex: 0,
     },
     {
       id: '2',
@@ -47,7 +85,8 @@ export default function LiveScreen() {
       estimatedArrival: '7 min',
       occupancy: 'high',
       delay: 2,
-      coordinates: { x: 180, y: 220 },
+      coordinates: { latitude: 18.4940, longitude: -69.9260 }, // extremo noreste
+      routeIndex: 0,
     },
     {
       id: '3',
@@ -58,7 +97,8 @@ export default function LiveScreen() {
       estimatedArrival: '5 min',
       occupancy: 'low',
       delay: -1,
-      coordinates: { x: 90, y: 280 },
+      coordinates: { latitude: 18.4920, longitude: -69.9390 }, // extremo noroeste
+      routeIndex: 0,
     },
     {
       id: '4',
@@ -69,7 +109,8 @@ export default function LiveScreen() {
       estimatedArrival: '12 min',
       occupancy: 'medium',
       delay: 3,
-      coordinates: { x: 250, y: 180 },
+      coordinates: { latitude: 18.4810, longitude: -69.9270 }, // extremo sureste
+      routeIndex: 0,
     },
     {
       id: '5',
@@ -80,27 +121,39 @@ export default function LiveScreen() {
       estimatedArrival: '2 min',
       occupancy: 'high',
       delay: 0,
-      coordinates: { x: 140, y: 320 },
+      coordinates: { latitude: 18.4865, longitude: -69.9330 }, // centro
+      routeIndex: 0,
     },
   ];
 
   useEffect(() => {
     setBuses(mockBuses);
-    
-    // Simulate real-time updates
+
     const interval = setInterval(() => {
-      setBuses(prevBuses => 
-        prevBuses.map(bus => ({
-          ...bus,
-          coordinates: {
-            x: Math.max(50, Math.min(width - 80, bus.coordinates.x + (Math.random() - 0.5) * 20)),
-            y: Math.max(50, Math.min(350, bus.coordinates.y + (Math.random() - 0.5) * 15)),
-          },
-          estimatedArrival: `${Math.max(1, parseInt(bus.estimatedArrival) + Math.floor(Math.random() * 3) - 1)} min`,
-        }))
+      setBuses(prevBuses =>
+        prevBuses.map(bus => {
+          // Limites más amplios para Santo Domingo
+          const minLat = 18.4800;
+          const maxLat = 18.4950;
+          const minLng = -69.9450;
+          const maxLng = -69.9250;
+
+          // Movimiento aleatorio más amplio
+            let newLat = bus.coordinates.latitude + (Math.random() - 0.5) * 0.012;
+            let newLng = bus.coordinates.longitude + (Math.random() - 0.5) * 0.012;
+
+          // Mantener dentro de los límites
+          newLat = Math.max(minLat, Math.min(maxLat, newLat));
+          newLng = Math.max(minLng, Math.min(maxLng, newLng));
+
+          return {
+            ...bus,
+            coordinates: { latitude: newLat, longitude: newLng },
+          };
+        })
       );
       setLastUpdate(new Date());
-    }, 5000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, []);
@@ -155,16 +208,6 @@ export default function LiveScreen() {
             })}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={styles.refreshButton}
-          onPress={handleRefresh}
-        >
-          <RefreshCw 
-            color="#1E40AF" 
-            size={20} 
-            style={[isRefreshing && { transform: [{ rotate: '180deg' }] }]}
-          />
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -178,44 +221,51 @@ export default function LiveScreen() {
           </View>
           
           <View style={styles.map}>
-            {/* Map Background */}
-            <View style={styles.mapBackground}>
-              <Text style={styles.mapPlaceholder}>Santo Domingo</Text>
-              
-              {/* Street Lines */}
-              <View style={[styles.street, { top: 100, left: 0, width: '100%', height: 2 }]} />
-              <View style={[styles.street, { top: 200, left: 0, width: '100%', height: 2 }]} />
-              <View style={[styles.street, { top: 300, left: 0, width: '100%', height: 2 }]} />
-              <View style={[styles.street, { top: 0, left: 100, width: 2, height: '100%' }]} />
-              <View style={[styles.street, { top: 0, left: 200, width: 2, height: '100%' }]} />
-            </View>
-
-            {/* Live Buses */}
-            {buses.map((bus) => (
-              <TouchableOpacity
-                key={bus.id}
-                style={[
-                  styles.busMarker,
-                  {
-                    top: bus.coordinates.y,
-                    left: bus.coordinates.x,
-                    backgroundColor: selectedBus?.id === bus.id ? '#1E40AF' : '#FFFFFF',
-                  }
-                ]}
-                onPress={() => handleBusPress(bus)}
-              >
-                <Bus 
-                  color={selectedBus?.id === bus.id ? '#FFFFFF' : '#1E40AF'} 
-                  size={16} 
+            {/* Map Background usando Google Maps */}
+            <MapView
+              style={StyleSheet.absoluteFill}
+              initialRegion={{
+                latitude: 18.4875, // Centro aproximado de los buses
+                longitude: -69.9320,
+                latitudeDelta: 0.015, // Más pequeño para acercar el mapa
+                longitudeDelta: 0.015,
+              }}
+              provider="google"
+            >
+              {/* Polylines para cada ruta */}
+              {Object.entries(routes).map(([routeKey, routeCoords]) => (
+                <Polyline
+                  key={routeKey}
+                  coordinates={routeCoords}
+                  strokeColor="#1E40AF"
+                  strokeWidth={4}
                 />
-                <Text style={[
-                  styles.busMarkerText,
-                  { color: selectedBus?.id === bus.id ? '#FFFFFF' : '#1E40AF' }
-                ]}>
-                  {bus.routeNumber}
-                </Text>
-              </TouchableOpacity>
-            ))}
+              ))}
+
+              {/* Buses como marcadores */}
+              {buses.map((bus) => (
+                <Marker
+                  key={bus.id}
+                  coordinate={bus.coordinates}
+                  title={bus.routeNumber}
+                  description={bus.routeName}
+                  onPress={() => handleBusPress(bus)}
+                >
+                  <View style={[
+                    styles.busMarker,
+                    { backgroundColor: selectedBus?.id === bus.id ? '#1E40AF' : '#FFFFFF' }
+                  ]}>
+                    <Bus color={selectedBus?.id === bus.id ? '#FFFFFF' : '#1E40AF'} size={16} />
+                    <Text style={[
+                      styles.busMarkerText,
+                      { color: selectedBus?.id === bus.id ? '#FFFFFF' : '#1E40AF' }
+                    ]}>
+                      {bus.routeNumber}
+                    </Text>
+                  </View>
+                </Marker>
+              ))}
+            </MapView>
 
             {/* Legend */}
             <View style={styles.legend}>

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { router, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://10.0.2.2:3000/login', { // Cambia la URL si usas dispositivo físico
+      const response = await fetch('http://10.0.2.2:3000/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -30,7 +31,12 @@ export default function LoginScreen() {
       const data = await response.json();
       setLoading(false);
 
-      
+      if (data.success) {
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        router.replace('/(tabs)'); // Redirige al index si el usuario existe
+      } else {
+        setErrorMsg('Usuario no encontrado');
+      }
     } catch (error) {
       setLoading(false);
       setErrorMsg('Usuario no encontrado');

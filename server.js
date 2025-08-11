@@ -17,12 +17,25 @@ const db = mysql.createConnection({
 // Ruta para registrar usuario
 app.post('/register', (req, res) => {
   const { name, email, password } = req.body;
+  // Verifica si el email ya existe
   db.query(
-    'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
-    [name, email, password],
-    (err, result) => {
+    'SELECT * FROM users WHERE email = ?',
+    [email],
+    (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true, userId: result.insertId });
+      if (results.length > 0) {
+        // Ya existe una cuenta con ese email
+        return res.status(409).json({ success: false, message: 'El correo electrónico ya está registrado' });
+      }
+      // Si no existe, crea el usuario
+      db.query(
+        'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
+        [name, email, password],
+        (err, result) => {
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ success: true, userId: result.insertId });
+        }
+      );
     }
   );
 });
@@ -30,19 +43,22 @@ app.post('/register', (req, res) => {
 // Ruta para iniciar sesión
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
-  console.log('Intento de login:', email, password); // <-- log
+  console.log('Intento de login:', email, password);
   db.query(
-    'SELECT * FROM users WHERE email = ? AND password_hash = ?',
-    [email, password],
+    'SELECT * FROM users WHERE email = ?',
+    [email],
     (err, results) => {
       if (err) {
-        console.error('Error MySQL:', err); // <-- log
+        console.error('Error MySQL:', err);
         return res.status(500).json({ error: err.message });
       }
-      console.log('Resultados:', results); // <-- log
+      console.log('Resultados:', results);
       if (results.length === 0) {
-        return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
+        // No existe el usuario con ese email
+        return res.status(401).json({ success: false, message: 'Incorrect email or password' });
       }
+
+      // Usuario y contraseña correctos
       res.json({ success: true, user: results[0] });
     }
   );
